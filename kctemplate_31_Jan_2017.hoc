@@ -1,0 +1,133 @@
+begintemplate singlekcneurite
+public kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+
+create kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+access kcdend
+
+proc init() { 
+
+ create kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+
+  
+kcsoma {
+   nseg = 1
+   diam = 7
+   L = 1.5
+   Ra =  123.0  // axial resistivity
+   insert hh
+   gnabar_hh = 0.5
+   gkbar_hh = 0.014
+   }
+
+kccalyx {
+   nseg = 3
+   diam = 0.3
+   L = 1.5
+   Ra = 123.0
+   insert pas
+   g_pas = 0.001
+   e_pas = -60.0
+   }
+  
+kcdend{
+   nseg = 2
+   diam = 0.3 
+   L = 5
+   Ra = 123.0               
+   insert pas
+   g_pas = .0001
+   e_pas = -60.0
+   }  
+
+kcaxon{
+   nseg = 3
+   diam = 0.5
+   L = 1
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 50
+   gkbar_hh = 0.2
+   }
+
+kcalpha {
+   nseg = 5
+   diam = 0.5
+   L = 250
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 0.001
+   gkbar_hh = 0.12
+   insert pas
+   g_pas = 0.0001
+   e_pas = -60.0
+}
+
+
+kcbeta{
+   nseg = 5
+   diam = 0.3
+   L = 200
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 0.5
+   gkbar_hh = 0.15
+   insert pas
+   g_pas = 0.0001
+   e_pas = -60.0
+}
+
+connect kcbeta(0),kcaxon(1)
+connect kcalpha(0),kcaxon(1)
+connect kcaxon(0),kccalyx(1)
+connect kcdend(0),kccalyx(1)
+connect kccalyx(0),kcsoma(1)
+
+
+}
+
+endtemplate singlekcneurite
+
+tstop = 500
+
+nsinglekcneurites = 10
+objectvar singlekcneurites[nsinglekcneurites]
+
+for i = 0, nsinglekcneurites-1 {
+   singlekcneurites[i] = new singlekcneurite()
+   }
+
+
+
+/*
+
+for i  = 0,nsinglekcneurites {
+    connect betadend(0), singlekcneurites[i](1)
+}    
+
+*/
+
+// Stimulating all the neurons in the template simultaneously
+
+objectvar stim[nsinglekcneurites]
+
+for i = 0,nsinglekcneurites-1 singlekcneurites[i].kcdend {
+stim[i]     = new IClamp(0.5)
+stim[i].del = 100
+stim[i].dur = 100
+stim[i].amp = 0.5
+}
+
+
+
+objectvar g,scene_vector_[7]
+g = new Graph(0)
+g.size(0,2000,-80,40)
+scene_vector_[3] = g
+{g.view(0, -80, 500, 120, 910, 376, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("singlekcneurites[0].kcdend.v( 0.5 )", 3, 1, 0.758084, 1.0255, 2)
+g.addvar("singlekcneurites[0].kcaxon.v( 0.5 )", 6, 1, 0.77006, 0.917928, 2)
+g.addvar("singlekcneurites[0].kcsoma.v( 0.5 )", 5, 1, 0.77006, 1.19133, 2)
+
+run()

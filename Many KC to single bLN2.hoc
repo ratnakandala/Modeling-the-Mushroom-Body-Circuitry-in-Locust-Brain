@@ -1,0 +1,167 @@
+begintemplate singlekcneurite
+public kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+
+create kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+access kcdend
+
+proc init() { 
+
+ create kcsoma,kcdend,kcaxon,kcalpha,kcbeta,kccalyx
+
+  
+kcsoma {
+   nseg = 1
+   diam = 7
+   L = 1.5
+   Ra =  123.0  // axial resistivity
+   insert hh
+   gnabar_hh = 0.5
+   gkbar_hh = 0.014
+   }
+
+kccalyx {
+   nseg = 3
+   diam = 0.3
+   L = 1.5
+   Ra = 123.0
+   insert pas
+   g_pas = 0.001
+   e_pas = -60.0
+   }
+  
+kcdend{
+   nseg = 2
+   diam = 0.3 
+   L = 5
+   Ra = 123.0               
+   insert pas
+   g_pas = .0001
+   e_pas = -60.0
+   }  
+
+kcaxon{
+   nseg = 3
+   diam = 0.5
+   L = 1
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 50
+   gkbar_hh = 0.2
+   }
+
+kcalpha {
+   nseg = 5
+   diam = 0.5
+   L = 250
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 0.001
+   gkbar_hh = 0.12
+   insert pas
+   g_pas = 0.0001
+   e_pas = -60.0
+}
+
+
+kcbeta{
+   nseg = 5
+   diam = 0.3
+   L = 200
+   Ra = 123.0
+   insert hh
+   gnabar_hh = 0.5
+   gkbar_hh = 0.15
+   insert pas
+   g_pas = 0.0001
+   e_pas = -60.0
+}
+
+connect kcbeta(0),kcaxon(1)
+connect kcalpha(0),kcaxon(1)
+connect kcaxon(0),kccalyx(1)
+connect kcdend(0),kccalyx(1)
+connect kccalyx(0),kcsoma(1)
+
+
+}
+
+endtemplate singlekcneurite
+
+nsinglekcneurites = 10
+objectvar singlekcneurites[nsinglekcneurites]
+
+for i = 0, nsinglekcneurites-1 {
+   singlekcneurites[i] = new singlekcneurite()
+   }
+
+
+// One bLN2
+
+create betasoma,betaaxon1,betaaxon2,betadend
+access betadend
+
+connect betadend(0),   betasoma(0)
+connect betaaxon1(0),  betasoma(1)
+connect betaaxon2(0),  betasoma(1)
+
+betasoma {
+        nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+        L = 6  
+        diam = 6   
+        Ra = 123
+        insert pas
+          g_pas = 0.0001
+          e_pas = -70
+     } 
+
+
+betaaxon1 {
+          nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+
+         L = 200  
+         diam = 2 
+         Ra = 123
+         insert hh
+            gnabar_hh =  1.8
+            gkbar_hh =  0.3
+            gl_hh = 0.00000006
+            el_hh = -54.3
+          insert pas
+             g_pas =  0.0002
+             e_pas = -70
+
+       } 
+
+betaaxon2 {
+         nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+
+         L = 200  
+         diam = 2 
+         Ra = 123
+         insert hh
+            gnabar_hh =  1.8
+            gkbar_hh =  0.3
+            gl_hh = 0.00000006
+            el_hh = -54.3
+          insert pas
+             g_pas =  0.0002
+             e_pas = -70
+
+        }
+
+
+
+betadend {
+       nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+       L = 4 
+       diam = 0.4 
+       Ra = 123
+       insert pas
+          g_pas =  0.01
+          e_pas = -70
+            }
+
+
+
+
+

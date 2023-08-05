@@ -1,0 +1,267 @@
+load_file("nrngui.hoc")
+
+create kcsoma,kccalyx,kcdend,kcaxon,kcalpha,kcbeta
+access kcsoma
+
+kcsoma {
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   diam = 7  // µm 5
+   L = 7  // µm
+   Ra =  35.4  // axial resistivity 
+   insert hh
+   gnabar_hh = 0.2
+   gkbar_hh = 0.0000328
+   gl_hh = 0.0000039
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.001  // 0.001
+   e_pas =  -65  //-70
+   }
+
+kccalyx {
+   diam = 0.3
+   L = 1.5
+   Ra = 123.0
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert pas
+   g_pas = 0.0000026
+   e_pas =  -65
+   }
+
+
+kcdend{
+   diam = 0.3 
+   L = 5
+   Ra = 123.0               
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert pas
+   g_pas = 0.001
+   e_pas =  -65
+   }
+
+kcaxon{
+   diam = 0.5
+   L = 1 // 150
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 1.3
+   gkbar_hh = 1.2
+   gl_hh = 0.6  
+   el_hh = -54.3
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.5 
+   e_pas =  -65
+   }
+
+kcalpha {
+   diam = 0.5
+   L = 250
+   Ra = 123.0
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 0.000000152
+   gkbar_hh = 0.000000038
+   gl_hh = 0.000000039
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.0000026
+   e_pas =  -65
+   }
+
+
+kcbeta{
+   diam = 0.3
+   L = 200
+   Ra = 123.0
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 0.000000152
+   gkbar_hh = 0.000000038
+   gl_hh = 0.000000039
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.0000026
+   e_pas =  -65
+   }
+
+
+connect kcsoma(0),kccalyx(0)
+connect kcaxon(0),kccalyx(1)
+connect kcdend(0),kcaxon(0)
+connect kcalpha(0),kcaxon(1)
+connect kcbeta(0),kcaxon(1)
+
+
+objectvar stim
+stamp = 0.1
+
+ kcsoma {
+ stim = new IClamp(0.5)
+ stim.del = 100 
+ stim.dur = 100
+ stim.amp = stamp
+ } 
+
+tstop = 300
+
+cstep = 0.05 // nA
+namps = 50
+
+
+// Panel buttons and procedures
+
+proc update_clamp() {
+     stim.amp = stamp
+}
+
+
+// postprocessing
+objref nc,nil,indx,numofspikes,num,freq,g,stimamp
+indx        = new Vector()
+numofspikes = new Vector()
+num         = new Vector()
+freq        = new Vector()     //frequency vector
+stimamp     = new Vector()
+
+kcsoma nc    = new NetCon(&v(.5),nil)
+nc.threshold = -42 
+ 
+
+// Count no. of spikes
+proc getspiketimes(){
+    nc.record(indx)
+    numofspikes.append(indx.size())// number of spikes for each value of IClamp
+    stimamp.append(stim.amp)
+    }
+
+
+for j = 0,namps {
+    stim.amp = j*cstep
+    run()
+    getspiketimes()
+    }
+
+
+// Copy the number of spikes into another Vector
+// firing frequency = number of spikes/(total duration of current injection) -> this wont account for offset response
+// firing frequency = number of spikes/( time of simulation - delay in current injection ) 
+// firing frequency = number of spikes/(tstop- stim.del)
+
+num.copy(numofspikes)
+freq = num.div(tstop - stim.del) // per msec
+freq = freq.mul(1000)
+
+
+
+
+objref freqg
+freqg = new Graph()
+freqg.size(0,cstep*(namps+1),0,freq.max()+2)
+freq.plot(freqg,cstep)
+freqg.label(0.150351, 0.912891, " firing frequency(y) vs +ve current injected(x)", 2, 1, 0, 0, 1)
+
+nrncontrolmenu()  // will display the RUN CONTROL 
+
+
+objref nosg
+nosg = new Graph()
+nosg.size(0, cstep*(namps+1), 0, numofspikes.max()+2)
+numofspikes.plot(nosg,cstep)
+nosg.label (0.150351, 0.912891, " no of spikes vs +ve current injected", 2, 1, 0, 0, 1)
+
+
+objectvar g, scene_vector_[8]
+
+{
+g = new Graph(0)
+g.size(0,2000,-80,40)
+scene_vector_[3] = g
+{g.view(0, -80, 500, 120, 910, 376, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcsoma.v( 0.5 )", 6, 1, 0.8, 0.9, 2)
+g.label (0.629393, 0.392971, "voltage axis", 2, 1, 0, 0, 1)
+}
+
+{
+g = new Graph(0)
+g.size(0,500,-80,40)
+scene_vector_[4] = g
+{g.view(0, -80, 500, 120, 1068, 66, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcaxon.m_hh( 0.5 )", 7, 1, 0.656287, 0.841733, 2)
+g.label (0.171309, 0.863589, "m value of kcaxon", 2, 1, 0, 0, 1)
+}
+
+{
+g = new Graph(0)
+g.size(0,500,-80,40)
+scene_vector_[5] = g
+{g.view(0, -80, 500, 120, 224, 308, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcaxon.n_hh( 0.5 )", 5, 1,0.677245, 0.846215,2)
+g.label (0.240171, 0.908409, " State axis : n value of kcaxon", 2, 1, 0, 0, 1)
+}
+
+{
+g = new Graph(0)
+g.size(0,500,-80,40)
+scene_vector_[6] = g
+{g.view(0, -80, 500, 120, 510, 7, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcaxon.h_hh( 0.5 )", 3, 1,0.689222, 0.864143, 2)
+g.label (0.159333, 0.899445, " State axis : h value of kcaxon", 2, 1, 0, 0, 1)
+}
+
+{
+g = new Graph(0)
+g.size(0,2000,-80,40)
+scene_vector_[6] = g
+{g.view(0, -80, 500, 120,37, 264,300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcaxon.v( 0.5 )", 2, 1,0.704192, 0.882072, 2)
+g.label (0.150351, 0.912891, " State axis : h value of kcaxon", 2, 1, 0, 0, 1)
+}
+
+// Saving the current injected and number of spikes info containing vectors in one file
+objref savdata
+
+savdata = new File()
+savdata.wopen("kcsimulations.dat") 
+
+savdata.printf(" stim.amp numofspikes\n")
+savdata.printf("%d\n", stimamp.size())
+
+for i = 0,stimamp.size()-1 {
+   savdata.printf("%g %g\n", stimamp.x(i), numofspikes.x(i))
+  }
+
+savdata.close()
+
+// Saving the frequency vector
+
+objref savf
+
+savf = new File()
+savf.wopen("freq.dat")
+
+freq.printf(savf)
+
+savf.close()
+
+
+
+run()

@@ -1,0 +1,229 @@
+load_file("nrngui.hoc")
+
+celsius = 6.5
+
+create kcsoma,kccalyx,kcdend,kcaxon,kcalpha,kcbeta
+access kcsoma
+
+kcsoma {
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   diam = 5  // µm 
+   L = 5  // µm
+   Ra =  35.4  // axial resistivity 
+   /*insert hh
+   gnabar_hh = 0.2
+   gkbar_hh = 0.0000328
+   gl_hh = 0.0000039
+   el_hh = -54.3 
+   ena = 50
+   ek = -77*/
+   insert pas
+   g_pas = 0.001  
+   e_pas =  -70
+   }
+
+kccalyx {
+   diam = 0.4
+   L = 150
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert pas
+   g_pas = 0.001
+   e_pas =  -70
+   }
+
+
+kcdend{
+   diam = 0.5 
+   L = 100
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert pas
+   g_pas = 0.001
+   e_pas =  -65
+   }
+
+kcaxon{
+   diam = 0.6
+   L = 60
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 4.7
+   gkbar_hh = 0.75
+   gl_hh = 0.0003
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.001
+   e_pas =  -65
+   }
+
+kcalpha {
+   diam = 0.3
+   L = 200
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 0.42
+   gkbar_hh = 0.036
+   gl_hh = 0.0003
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.001
+   e_pas =  -65
+   }
+
+
+kcbeta{
+   diam = 0.3
+   L = 300
+   Ra = 35.4
+   nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+   insert hh
+   gnabar_hh = 4
+   gkbar_hh = 0.036
+   gl_hh = 0.0003
+   el_hh = -54.3 
+   ena = 50
+   ek = -77
+   insert pas
+   g_pas = 0.1
+   e_pas =  -65
+   }
+
+
+connect kcsoma(0),kccalyx(0)
+connect kcaxon(0),kccalyx(1)
+connect kcdend(0),kcaxon(0)
+connect kcalpha(0),kcaxon(1)
+connect kcbeta(0),kcaxon(1)
+
+
+
+tstop = 400
+
+// Set up current clamp
+
+objectvar stim
+stamp = 0.1
+ kcsoma {
+ stim = new IClamp(0.5)
+ stim.del = 100 
+ stim.dur = 50
+ stim.amp = stamp
+ } 
+
+cstep = 0.05 //nA
+namps = 70
+
+// Panel buttons and procedures
+
+proc update_clamp() {
+     stim.amp = stamp
+}
+
+
+// Set up NetCon to record spike times
+objref nc,nil,indx,numofspikes,num,freq,g,stimamp
+kcaxon nc      = new NetCon(&v(.5),nil) // (source,target)
+nc.threshold   = -42// mV
+indx           = new Vector()
+numofspikes    = new Vector() // save data
+stimamp        = new Vector()
+num            = new Vector()
+
+
+// Count no. of spikes
+proc getspiketimes(){
+
+    nc.record(indx)
+    numofspikes.append(indx.size())
+    stimamp.append(stim.amp)
+}
+
+
+for j = 0,namps {
+    stim.amp = (j*cstep)
+    run()
+    getspiketimes()
+    }
+
+
+/*objref rect,recv
+
+rect = new Vector()
+recv = new Vector()
+
+recv.record(&kcaxon.v(0.5))
+rect.record(&t)
+
+objref savv,savt
+
+savv = new File()
+savt = new File()
+
+savv.wopen("kcaxonvoltage.dat")
+savt.wopen("kcaxont.dat")
+
+
+savv.printf(" kcaxon.v(0.5)\n")
+savv.printf("%d\n", recv.size())
+
+for i = 0,recv.size()-1 {
+   savv.printf("%g \n", recv.x(i))
+  }
+
+savv.close()
+
+
+
+savt.close()*/
+
+
+
+
+// saving the data of numofspikes and current values in one file
+objref savdata
+
+savdata = new File()
+savdata.wopen("kcsomani.dat")  
+
+
+// Save the data available in our vectors in one File
+savdata.printf(" stim.amp numofspikes\n")
+savdata.printf("%d\n", stimamp.size())
+
+for i = 0,stimamp.size()-1 {
+   savdata.printf("%g %g\n", stimamp.x(i), numofspikes.x(i))
+  }
+
+savdata.close()
+
+// Graph 1 : Graph for Number of Spikes vs time
+objref nosg
+nosg = new Graph()
+nosg.size(0, cstep*(namps+1), 0, numofspikes.max()+2)
+numofspikes.plot(nosg,cstep)
+nosg.label (0.150351, 0.912891, " no of spikes vs +ve current injected", 2, 1, 0, 0, 1)
+
+
+ //Graph 2 : v in kcsoma,kcaxon,kcdend,kcalpha,kcbeta
+objectvar g, scene_vector_[8]
+g = new Graph(0)
+g.size(0,2000,-80,40)
+scene_vector_[3] = g
+{g.view(0, -80, 500, 120, 910, 376, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("kcsoma.v( 0.5 )", 3, 1, 0.758084, 1.0255, 2)
+g.addvar("kcaxon.v( 0.5 )", 6, 1, 0.77006, 0.917928, 2)
+g.addvar("kcdend.v( 0.5 )", 5, 1, 0.77006, 1.19133, 2)
+g.addvar("kccalyx.v( 0.5 )", 2, 1, 0.764072, 1.08376, 2)
+g.addvar("kcalpha.v( 0.0333333 )", 7, 1, 0.77006, 0.958267, 2)
+g.addvar("kcbeta.v( 0.0333333 )", 4, 1, 0.764072, 0.931374, 2)
+
+run()

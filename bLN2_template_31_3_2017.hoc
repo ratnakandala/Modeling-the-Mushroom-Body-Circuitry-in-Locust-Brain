@@ -1,0 +1,116 @@
+begintemplate singlebetaneurite
+public betasoma,betaaxon1,betaaxon2,betadend
+
+create betasoma,betaaxon1,betaaxon2,betadend
+access betadend
+
+proc init() { 
+
+ create betasoma,betaaxon1,betaaxon2,betadend
+
+betasoma {
+        nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+        L = 6  
+        diam = 6   
+        Ra = 123
+        insert pas
+          g_pas = 0.0001
+          e_pas = -70
+     } 
+  
+
+
+
+betadend {
+       nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+       L = 4 
+       diam = 0.4 
+       Ra = 123
+       insert pas
+          g_pas =  0.01
+          e_pas = -70
+            }
+
+
+
+betaaxon1 {
+          nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+
+         L = 200  
+         diam = 2 
+         Ra = 123
+         insert hh
+            gnabar_hh =  1.8
+            gkbar_hh =  0.3
+            gl_hh = 0.00000006
+            el_hh = -54.3
+          insert pas
+             g_pas =  0.0002
+             e_pas = -70
+
+       } 
+
+
+betaaxon2 {
+         nseg = int((L/(0.1*lambda_f(100))+.999)/2)*2 + 1
+
+         L = 200  
+         diam = 2 
+         Ra = 123
+         insert hh
+            gnabar_hh =  1.8
+            gkbar_hh =  0.3
+            gl_hh = 0.00000006
+            el_hh = -54.3
+          insert pas
+             g_pas =  0.0002
+             e_pas = -70
+
+        }
+
+
+connect betadend(0),   betasoma(0)
+connect betaaxon1(0),  betasoma(1)
+connect betaaxon2(0),  betasoma(1)
+
+
+}
+
+endtemplate singlebetaneurite
+
+tstop = 500
+
+nsinglebetaneurites = 10
+objectvar singlebetaneurites[nsinglebetaneurites]
+
+for i = 0, nsinglebetaneurites-1 {
+   singlebetaneurites[i] = new singlebetaneurite()
+   }
+
+
+// Stimulating all the neurons in the template simultaneously
+
+objectvar stim[nsinglebetaneurites]
+
+for i = 0,nsinglebetaneurites-1 singlebetaneurites[i].betadend {
+stim[i]     = new IClamp(0.5)
+stim[i].del = 100
+stim[i].dur = 100
+stim[i].amp = 0.5
+}
+
+
+
+objectvar g,scene_vector_[7]
+g = new Graph(0)
+g.size(0,2000,-80,40)
+scene_vector_[3] = g
+{g.view(0, -80, 500, 120, 910, 376, 300.6, 200.8)}
+graphList[0].append(g)
+g.save_name("graphList[0].")
+g.addvar("singlebetaneurites[0].betadend.v( 0.5 )", 3, 1, 0.758084, 1.0255, 2)
+g.addvar("singlebetaneurites[0].betaaxon1.v( 0.5 )", 6, 1, 0.77006, 0.917928, 2)
+g.addvar("singlebetaneurites[0].betaaxon2.v( 0.5 )", 4, 1, 0.77006, 0.917928, 2)
+g.addvar("singlebetaneurites[0].betasoma.v( 0.5 )", 5, 1, 0.77006, 1.19133, 2)
+
+run()
